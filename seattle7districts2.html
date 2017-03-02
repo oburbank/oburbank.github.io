@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 12px sans-serif;
+}
+
+path {
+  stroke-width: 1px;
+  stroke: white;
+  fill: #999;
+  cursor: pointer;
+}
+
+path.q0-7 {
+  fill: #d99ba6;
+}
+
+path.q1-7 {
+  fill: #c7a581;
+}
+
+path.q2-7 {
+  fill: #9fb27b;
+}
+
+path.q3-7 {
+  fill: #70ba9b;
+}
+
+path.q4-7 {
+  fill: #6ab7c2;
+}
+
+path.q5-7 {
+  fill: #9eaad6;
+}
+
+path.q6-7 {
+  fill: #cb9cca;
+}
+
+div.tooltip {
+  position: absolute;
+  background-color: white;
+  border: 1px solid black;
+  color: black;
+  font-weight: bold;
+  padding: 4px 8px;
+  display: none;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script>
+
+//Map dimensions (in pixels)
+var width = 340,
+    height = 600;
+
+//Map projection
+var projection = d3.geo.conicEqualArea()
+    .scale(136689.2802220083)
+    .center([-122.34550732131957,47.62337310942459]) //projection center
+    .parallels([47.49554948835318,47.73414621765499]) //parallels for conic projection
+    .rotate([122.34550732131957]) //rotation for conic projection
+    .translate([-124571.19772849057,-125250.31750186898]) //translate to center the map in view
+
+//Generate paths based on projection
+var path = d3.geo.path()
+    .projection(projection);
+
+//Create an SVG
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+//Group for the map features
+var features = svg.append("g")
+    .attr("class","features");
+
+//Create choropleth scale
+var color = d3.scale.quantize()
+    .domain([1,7])
+    .range(d3.range(7).map(function(i) { return "q" + i + "-7"; }));
+
+//Create a tooltip, hidden at the start
+var tooltip = d3.select("body").append("div").attr("class","tooltip");
+
+d3.json("seattle7districts2.json",function(error,geodata) {
+  if (error) return console.log(error); //unknown error, check the console
+
+  //Create a path for each map feature in the data
+  features.selectAll("path")
+    .data(topojson.feature(geodata,geodata.objects.tabblock2010_53_pophu).features) //generate features from TopoJSON
+    .enter()
+    .append("path")
+    .attr("d",path)
+    .attr("class", function(d) { return (typeof color(d.properties.district) == "string" ? color(d.properties.district) : ""); })
+    .on("mouseover",showTooltip)
+    .on("mousemove",moveTooltip)
+    .on("mouseout",hideTooltip)
+    .on("click",clicked);
+
+});
+
+//Position of the tooltip relative to the cursor
+var tooltipOffset = {x: 5, y: -25};
+
+//Create a tooltip, hidden at the start
+function showTooltip(d) {
+  moveTooltip();
+
+  tooltip.style("display","block")
+      .text(d.properties["partition population"]);
+}
+
+//Move the tooltip to track the mouse
+function moveTooltip() {
+  tooltip.style("top",(d3.event.pageY+tooltipOffset.y)+"px")
+      .style("left",(d3.event.pageX+tooltipOffset.x)+"px");
+}
+
+//Create a tooltip, hidden at the start
+function hideTooltip() {
+  tooltip.style("display","none");
+}
+</script>
